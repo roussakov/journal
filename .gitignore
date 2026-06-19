@@ -27,6 +27,9 @@ pnpm-debug.log*
 .DS_Store
 .idea/
 .vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
 !.vscode/extensions.json
 
 # vercel

@@ -20,7 +20,6 @@ flowchart TB
     LocalHost -->|"http://localhost:3000/api/mcp"| LocalApp
     LocalApp --> LocalDocker
     LocalDocker --> LocalPG
-    LocalDocker --> LocalOllama
     LocalPgAdmin --> LocalPG
     LocalApp -->|"embed on write"| LocalOllama
     LocalApp -->|"INSERT entry"| LocalPG
@@ -47,11 +46,11 @@ flowchart LR
     Cursor["Cursor chat\n+ docs/INSTRUCTIONS.md"]
     Inspector[MCP Inspector]
     NextDev["apps/web\npnpm dev :3000"]
+    Ollama["Ollama :11434\nHomebrew"]
   end
 
   subgraph compose [docker-compose]
     PG[(postgres :5432\nvector 768)]
-    Ollama[ollama :11434]
     PgAdmin[pgadmin :5050]
   end
 
@@ -66,7 +65,7 @@ flowchart LR
 |-----------------|---------|------------------|
 | MCP server | `pnpm dev` on host | `http://localhost:3000/api/mcp` |
 | Postgres + pgvector | Docker | `localhost:5432` |
-| Ollama embeddings | Docker | `localhost:11434` |
+| Ollama embeddings | Homebrew on host (`brew services start ollama`, also run by `pnpm dev`) | `localhost:11434` |
 | pgAdmin | Docker | `http://localhost:5050` |
 | MCP host | Cursor or Inspector | `.cursor/mcp.json` |
 | Host prompt | `docs/INSTRUCTIONS.md` | via `.cursor/rules` pointer |
@@ -201,7 +200,7 @@ flowchart TB
 
 | Environment | Provider | Model | Dimensions | Runtime |
 |-------------|----------|-------|------------|---------|
-| Local (v1) | `ollama` | `nomic-embed-text` | 768 | Docker Ollama |
+| Local (v1) | `ollama` | `nomic-embed-text` | 768 | Host Ollama (Homebrew) |
 | Production | `vercel-gateway` | `openai/text-embedding-3-small` | 1536 | Vercel AI Gateway (stub only in code) |
 
 Embed input format: `title + "\n\n" + body`.

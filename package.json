@@ -6,11 +6,11 @@
     "node": ">=20"
   },
   "scripts": {
+    "predev": "brew services start ollama",
     "dev": "pnpm --filter @journal/web dev",
+    "predev:debug": "brew services start ollama",
+    "dev:debug": "pnpm --filter @journal/web dev:debug",
     "db:generate": "pnpm --filter @journal/db generate",
-    "db:migrate": "pnpm --filter @journal/db migrate",
-    "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down",
-    "docker:reset": "docker compose down -v && docker compose up -d"
+    "db:migrate": "pnpm --filter @journal/db migrate"
   }
 }

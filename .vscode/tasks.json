@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "kill-port-3000",
+      "type": "shell",
+      "command": "lsof -ti :3000 | xargs kill -9 2>/dev/null || true",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "close": true
+      }
+    }
+  ]
+}

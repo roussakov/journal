@@ -1,0 +1,16 @@
+{
+  "name": "journal",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @journal/web dev",
+    "db:generate": "pnpm --filter @journal/db generate",
+    "db:migrate": "pnpm --filter @journal/db migrate",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:reset": "docker compose down -v && docker compose up -d"
+  }
+}

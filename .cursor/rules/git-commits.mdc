@@ -1,0 +1,49 @@
+---
+description: Git commit message conventions for this repo
+alwaysApply: true
+---
+
+# Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): subject`
+
+## Format
+
+```
+type(scope): imperative subject
+
+Optional body explaining why, not what.
+```
+
+- **subject**: lowercase, imperative mood, no trailing period, ~72 chars max
+- **scope**: optional; package or area (`web`, `db`, `docker`, `docs`, `cursor`)
+- **body**: separate from subject with a blank line when needed
+
+## Types
+
+| Type | Use for |
+|------|---------|
+| `feat` | New behavior or MCP tool |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `chore` | Tooling, deps, config, gitignore |
+| `refactor` | Code change without behavior change |
+| `test` | Tests only |
+| `build` | Build or CI |
+| `perf` | Performance |
+
+## Examples
+
+```
+feat(web): add create_entry MCP tool
+fix(db): align embedding vector dimensions with migration
+docs: document local docker workflow
+chore(docker): add pgadmin service
+chore: initial project scaffold
+```
+
+## Do not
+
+- Vague subjects: `update`, `fix stuff`, `wip`
+- Past tense: `added feature` → use `add feature`
+- Mix unrelated changes in one commit

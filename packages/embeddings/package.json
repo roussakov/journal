@@ -1,0 +1,21 @@
+{
+  "name": "@journal/embeddings",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.32",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "ai": "^6.0.208",
+    "envalid": "^8.0.0",
+    "ollama-ai-provider-v2": "^3.6.0"
+  }
+}

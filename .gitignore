@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# project-local SSH keys (GitHub)
+.ssh/
+
+# build
+dist/
+.next/
+out/
+.turbo/
+
+# drizzle
+packages/db/drizzle/meta/_journal.json.bak
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo

@@ -72,6 +72,9 @@ importers:
 
   packages/embeddings:
     dependencies:
+      '@ai-sdk/gateway':
+        specifier: ^3.0.133
+        version: 3.0.133(zod@3.25.76)
       ai:
         specifier: ^6.0.208
         version: 6.0.208(zod@3.25.76)

@@ -1,11 +1,11 @@
 import {
-  index,
   pgTable,
   text,
   timestamp,
   uuid,
   vector,
 } from "drizzle-orm/pg-core";
+import { env } from "../env";
 
 export const entries = pgTable(
   "entries",
@@ -14,7 +14,8 @@ export const entries = pgTable(
     userId: text("user_id").notNull().default("default"),
     title: text("title").notNull(),
     body: text("body").notNull(),
-    embedding: vector("embedding", { dimensions: 768 }),
+    // DB column is unconstrained `vector`; EMBEDDING_DIMENSIONS is per-environment.
+    embedding: vector("embedding", { dimensions: env.EMBEDDING_DIMENSIONS }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -22,12 +23,6 @@ export const entries = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [
-    index("entries_embedding_hnsw_idx").using(
-      "hnsw",
-      table.embedding.op("vector_cosine_ops"),
-    ),
-  ],
 );
 
 export type Entry = typeof entries.$inferSelect;

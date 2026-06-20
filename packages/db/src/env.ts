@@ -6,4 +6,5 @@ export const env = cleanEnv(process.env, {
   DATABASE_POOL_IDLE_TIMEOUT: num(),
   DATABASE_POOL_CONNECT_TIMEOUT: num(),
   DATABASE_POOL_MAX_LIFETIME: num(),
+  EMBEDDING_DIMENSIONS: num(),
 });

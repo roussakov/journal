@@ -1,0 +1,27 @@
+# Copy to terraform.tfvars and adjust. Do not commit secrets.
+
+project_name         = "journal"
+git_repository       = "roussakov/journal"
+enable_git_integration = false
+production_branch    = "master"
+
+# Vercel dashboard → Project → Settings → Domains (not always {project_name}.vercel.app)
+vercel_production_hostname = "journal-ten-nu.vercel.app"
+
+# Neon org ID — Neon console → Organization settings → Organization ID
+neon_org_id = "org-REPLACE_ME"
+
+# Personal Hobby account — leave null. Set only for a team.
+# vercel_team_id = null
+
+# Neon free-tier region
+neon_region_id = "aws-us-east-1"
+
+# Set to skip Drizzle migrations (run pnpm db:migrate yourself)
+# apply_prod_migrations = true
+
+# Optional — Terraform generates MCP_API_KEY when omitted
+# mcp_api_key = "your-secret"
+
+# Optional — Vercel runtime provides VERCEL_OIDC_TOKEN for AI Gateway on deploy
+# ai_gateway_api_key = ""

@@ -1,3 +1,4 @@
+import { gateway } from "@ai-sdk/gateway";
 import { createOllama } from "ollama-ai-provider-v2";
 import type { EmbeddingModel } from "ai";
 import { env } from "./env";
@@ -14,9 +15,7 @@ export function getEmbeddingModel(): EmbeddingModel {
       );
     }
     case "vercel-gateway":
-      throw new Error(
-        "EMBEDDING_PROVIDER=vercel-gateway is not implemented in v1. Use ollama locally.",
-      );
+      return gateway.embeddingModel(env.EMBEDDING_MODEL);
     default: {
       const provider: never = env.EMBEDDING_PROVIDER;
       throw new Error(`Unsupported EMBEDDING_PROVIDER: ${provider}`);

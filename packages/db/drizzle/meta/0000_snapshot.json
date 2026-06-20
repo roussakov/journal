@@ -36,7 +36,7 @@
         },
         "embedding": {
           "name": "embedding",
-          "type": "vector(768)",
+          "type": "vector",
           "primaryKey": false,
           "notNull": false
         },
@@ -55,24 +55,7 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "entries_embedding_hnsw_idx": {
-          "name": "entries_embedding_hnsw_idx",
-          "columns": [
-            {
-              "expression": "embedding",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last",
-              "opclass": "vector_cosine_ops"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "hnsw",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

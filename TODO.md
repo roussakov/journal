@@ -1,5 +1,9 @@
 # TODO — deferred from v1
 
+## Schema & migrations (high priority)
+
+- [ ] **Revisit migration strategy and strict schema definitions** — unconstrained `vector` vs fixed `vector(N)` per env; restore `entries_embedding_hnsw_idx` for `search_entries`; single vs split Drizzle tracks; align `entries.ts`, SQL migrations, and prod/local dimension policy (768 vs 1536)
+
 ## MCP tools
 
 - [ ] `list_entries`
@@ -18,7 +22,7 @@
 - [ ] Vercel Hobby deploy (`apps/web`)
 - [ ] Neon Postgres via Vercel Marketplace
 - [ ] ChatGPT Custom GPT connector (HTTPS)
-- [ ] Wire `vercel-gateway` embedding provider (`text-embedding-3-small`, 1536 dims)
+- [x] Wire `vercel-gateway` embedding provider (`text-embedding-3-small`, 1536 dims)
 - [ ] Prod migration for `vector(1536)` (separate DB from local)
 
 ## DevEx & ops

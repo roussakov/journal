@@ -23,11 +23,14 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
       PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
     volumes:
       - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
-      - ./docker/pgadmin/pgpass:/pgpass:ro
+      - ./docker/pgadmin/pgpass:/pgadmin4/pgpass:ro
+      - ./docker/pgadmin/entrypoint.sh:/pgadmin4/custom-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/pgadmin4/custom-entrypoint.sh"]
     depends_on:
       postgres:
         condition: service_healthy

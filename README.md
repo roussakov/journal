@@ -5,6 +5,7 @@ Save journal entries to Postgres with embeddings. v1 tool: **`create_entry`**.
 ## Setup
 
 ```bash
+# Ollama on host — temporary (firewall); not in docker-compose
 brew install ollama
 ollama pull nomic-embed-text
 brew services start ollama
@@ -14,7 +15,7 @@ pnpm install
 pnpm dev:prepare   # docker compose + migrations (also runs automatically before pnpm dev)
 ```
 
-Ollama runs on your Mac (not Docker) — required for Zscaler/corporate networks.
+Ollama runs on the host Mac, not in Docker — temporary workaround for corporate firewall / Zscaler blocking container pulls or network access. Move Ollama into compose once that is resolved.
 
 ## Dev
 

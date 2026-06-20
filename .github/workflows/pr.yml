@@ -1,0 +1,19 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  rebase-check:
+    name: Rebased on master
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify branch includes latest master
+        run: |
+          git fetch origin master
+          git merge-base --is-ancestor origin/master HEAD

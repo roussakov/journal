@@ -1,6 +1,6 @@
 # Production infrastructure (IaC)
 
-Terraform for the **deferred production** stack described in [ARCHITECTURE.md](../ARCHITECTURE.md):
+Terraform for the **production** stack described in [ARCHITECTURE.md](../ARCHITECTURE.md):
 
 | Component | Provider | Free tier |
 |-----------|----------|-----------|
@@ -100,7 +100,7 @@ GitHub must be connected to your Vercel account for `enable_git_integration = tr
 | Prod schema | `null_resource.prod_migrations` | `DATABASE_URL=<neon> pnpm db:migrate` |
 | Env vars | `vercel_project_environment_variables` | Vercel dashboard — see `.env.production.example` |
 
-## Deferred (not in this IaC)
+## Post-deploy configuration (not in this IaC)
 
 Per ARCHITECTURE.md and TODO.md — configure after first deploy:
 

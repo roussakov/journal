@@ -17,7 +17,7 @@
 - [ ] Re-enable MCP Bearer auth (`MCP_API_KEY` + `withMcpAuth`)
 - [ ] OAuth 2.1 for public connectors (ChatGPT)
 
-## Deployment & prod infrastructure
+## Deploy pipeline
 
 - [ ] **Single deploy pipeline — GitHub Actions as sole orchestrator** — one workflow file in repo, no split triggers:
   - **Source of truth:** `.github/workflows/deploy.yml` defines PR checks and prod deploy; `infra/terraform/` defines cloud resources; nothing else auto-runs on push

@@ -25,7 +25,7 @@ flowchart TB
     LocalApp -->|"INSERT entry"| LocalPG
   end
 
-  subgraph prodEnv [Production environment — deferred]
+  subgraph prodEnv [Production environment]
     direction TB
     ProdHost["MCP host: ChatGPT Custom GPT"]
     ProdApp["Vercel Hobby Next.js HTTPS"]
@@ -70,7 +70,7 @@ flowchart LR
 | MCP host | Cursor or Inspector | `.cursor/mcp.json` |
 | Host prompt | `docs/INSTRUCTIONS.md` | via `.cursor/rules` pointer |
 
-## Production environment (deferred)
+## Production environment
 
 ```mermaid
 flowchart LR
@@ -105,7 +105,7 @@ flowchart LR
 
 ## Environment comparison
 
-| Concern | Local (v1) | Production (deferred) |
+| Concern | Local (v1) | Production |
 |---------|------------|------------------------|
 | **MCP endpoint** | `http://localhost:3000/api/mcp` | `https://<project>.vercel.app/api/mcp` |
 | **MCP host** | Cursor, MCP Inspector | ChatGPT Custom GPT |
@@ -153,7 +153,7 @@ Implementation note: workspace packages are static imports with `transpilePackag
 flowchart TB
   InstructionsMD["docs/INSTRUCTIONS.md\nfull host prompt"]
   CursorRule[".cursor/rules/journal-assistant.mdc\npointer only"]
-  ChatGPTPrompt["ChatGPT Custom GPT Instructions\nsame file pasted — prod later"]
+  ChatGPTPrompt["ChatGPT Custom GPT Instructions\nsame file pasted"]
   ServerInstr["MCP server instructions in code\nshort tool guidance"]
   ToolDesc["create_entry description in code"]
 
@@ -201,7 +201,7 @@ flowchart TB
 | Environment | Provider | Model | Dimensions | Runtime |
 |-------------|----------|-------|------------|---------|
 | Local (v1) | `ollama` | `nomic-embed-text` | 768 | Host Ollama (Homebrew) |
-| Production | `vercel-gateway` | `openai/text-embedding-3-small` | 1536 | Vercel AI Gateway (stub only in code) |
+| Production | `vercel-gateway` | `openai/text-embedding-3-small` | 1536 | Vercel AI Gateway |
 
 Embed input format: `title + "\n\n" + body`.
 
@@ -230,4 +230,4 @@ entries (
 | 2026-06-19 | `@journal/schemas` instead of generic `shared` package name |
 | 2026-06-19 | `init.sql` for pgvector extension; Drizzle for app schema |
 | 2026-06-19 | Separate local (768) vs prod (1536) databases |
-| 2026-06-19 | MCP auth skipped for local v1; re-enable before prod |
+| 2026-06-19 | MCP auth skipped for local v1; `MCP_API_KEY` in prod (OAuth deferred) |

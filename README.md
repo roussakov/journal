@@ -11,8 +11,7 @@ brew services start ollama
 
 cp .env.example .env
 pnpm install
-docker compose up -d
-pnpm db:migrate
+pnpm dev:prepare   # docker compose + migrations (also runs automatically before pnpm dev)
 ```
 
 Ollama runs on your Mac (not Docker) — required for Zscaler/corporate networks.
@@ -20,8 +19,7 @@ Ollama runs on your Mac (not Docker) — required for Zscaler/corporate networks
 ## Dev
 
 ```bash
-docker compose up -d   # if not already running
-pnpm dev               # starts Ollama + MCP server → http://localhost:3000/api/mcp
+pnpm dev               # starts Ollama, Postgres, migrations, then MCP server → http://localhost:3000/api/mcp
 ```
 
 ## Cursor

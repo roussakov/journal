@@ -6,9 +6,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "predev": "brew services start ollama",
+    "dev:prepare": "docker compose up -d --wait && pnpm db:migrate",
+    "predev": "brew services start ollama && pnpm dev:prepare",
     "dev": "pnpm --filter @journal/web dev",
-    "predev:debug": "brew services start ollama",
+    "predev:debug": "brew services start ollama && pnpm dev:prepare",
     "dev:debug": "pnpm --filter @journal/web dev:debug",
     "db:generate": "pnpm --filter @journal/db generate",
     "db:migrate": "pnpm --filter @journal/db migrate"

@@ -1,6 +1,6 @@
 {
-  "id": "c1cf47ca-72ed-4a9a-96e9-dd86b4753d04",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "f3a8b7c6-9d0e-1f2a-3b4c-5d6e7f8a9b0c",
+  "prevId": "c1cf47ca-72ed-4a9a-96e9-dd86b4753d04",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -28,11 +28,61 @@
           "primaryKey": false,
           "notNull": true
         },
-        "body": {
-          "name": "body",
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "privacy": {
+          "name": "privacy",
+          "type": "entry_privacy",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'private'"
+        },
+        "people": {
+          "name": "people",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mood": {
+          "name": "mood",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rewritten_text": {
+          "name": "rewritten_text",
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "original_text": {
+          "name": "original_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "embedding": {
           "name": "embedding",
@@ -64,7 +114,13 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.entry_privacy": {
+      "name": "entry_privacy",
+      "schema": "public",
+      "values": ["private", "shared", "public"]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

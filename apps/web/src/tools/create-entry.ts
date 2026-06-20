@@ -10,23 +10,91 @@ export function registerCreateEntryTool(server: McpServer): void {
     {
       title: "Create journal entry",
       description:
-        "Save a journal entry with a title and body. Generates an embedding for future semantic search.",
+        "Save a journal entry. Generates an embedding from title, rewritten text, people, tags, location, and mood for semantic search.",
       inputSchema: {
         title: z.string().min(1).describe("Short title for the entry"),
-        body: z.string().min(1).describe("Full journal entry text"),
+        rewritten_text: z
+          .string()
+          .min(1)
+          .describe("Polished journal entry text"),
+        original_text: z
+          .string()
+          .optional()
+          .describe("Raw user input before rewriting, if different"),
+        country: z
+          .string()
+          .optional()
+          .describe("Country where the entry took place"),
+        city: z.string().optional().describe("City where the entry took place"),
+        language: z
+          .string()
+          .optional()
+          .describe("ISO 639-1 language code (e.g. en, es)"),
+        privacy: z
+          .enum(["private", "shared", "public"])
+          .optional()
+          .describe("Visibility level. Defaults to private."),
+        people: z
+          .array(z.string().min(1))
+          .optional()
+          .describe("People mentioned or involved"),
+        tags: z
+          .array(z.string().min(1))
+          .optional()
+          .describe("Structured tags for filtering"),
+        mood: z.string().optional().describe("Mood or emotional tone"),
       },
     },
-    async ({ title, body }) => {
-      const input = createEntryInputSchema.parse({ title, body });
+    async ({
+      title,
+      rewritten_text,
+      original_text,
+      country,
+      city,
+      language,
+      privacy,
+      people,
+      tags,
+      mood,
+    }) => {
+      const input = createEntryInputSchema.parse({
+        title,
+        rewrittenText: rewritten_text,
+        originalText: original_text,
+        country,
+        city,
+        language,
+        privacy,
+        people,
+        tags,
+        mood,
+      });
+
       const embedding = await embedText(
-        formatEntryEmbedText(input.title, input.body),
+        formatEntryEmbedText({
+          title: input.title,
+          rewrittenText: input.rewrittenText,
+          country: input.country,
+          city: input.city,
+          people: input.people,
+          tags: input.tags,
+          mood: input.mood,
+        }),
       );
 
       const [row] = await db
         .insert(entries)
         .values({
           title: input.title,
-          body: input.body,
+          rewrittenText: input.rewrittenText,
+          originalText: input.originalText,
+          country: input.country,
+          city: input.city,
+          language: input.language,
+          privacy: input.privacy,
+          people: input.people,
+          tags: input.tags,
+          mood: input.mood,
           embedding,
         })
         .returning({ id: entries.id });

@@ -1,0 +1,37 @@
+---
+description: Architecture Decision Records — when and how to write ADRs
+globs: docs/adr/**
+alwaysApply: false
+---
+
+# ADR discipline
+
+Major design decisions live in `docs/adr/`. See `docs/adr/README.md` for layout.
+
+## Layout
+
+- **Folder:** `docs/adr/YYYY-MM-DD/` — date of the decision session. No version suffix (`v1`, `v2`) in folder names.
+- **Batch README:** what this session decided; links to topic files.
+- **Topic file:** one major decision per `topic-slug.md` inside the date folder.
+
+**New session → new date folder.** Single urgent decision can be its own folder with one file.
+
+## Cross-references
+
+Use **Relates to:** / **Supersedes:** with relative links across date folders, e.g. `../2026-06-19/embedding-providers-by-environment.md`.
+
+When reversing a decision: mark old file `superseded`, add new topic file (new date folder if new session), link both ways.
+
+## Write an ADR when
+
+- Choosing or changing providers, schema, auth, deploy topology
+- Cost, security, or environment-splitting trade-offs
+
+Skip bug fixes, refactors without decision change, dependency bumps.
+
+## Keep in sync
+
+- **`ARCHITECTURE.md`** — how the system works now
+- **`docs/adr/`** — why choices were made
+- **`docs/adr/README.md`** — batch index when adding folders
+- **`TODO.md`** — deferred work from ADR consequences

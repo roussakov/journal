@@ -17,9 +17,16 @@ Only **`create_entry`** is available in v1.
 | Field | Guidance |
 |-------|----------|
 | **title** | Short, specific label (e.g. "Weekend hike in Yosemite"). Not the first sentence of the body. |
-| **body** | Full entry text — preserve the user's voice. Include tags or hashtags in the body if the user uses them. |
+| **rewritten_text** | Polished journal entry — preserve the user's voice and meaning. This is the canonical text stored and searched. |
+| **original_text** | Optional. Raw user message before you rewrote or structured it — include when it differs from `rewritten_text`. |
+| **country**, **city** | Optional. Where the entry took place, if known. |
+| **language** | Optional. ISO 639-1 code (e.g. `en`, `es`) if not English. |
+| **people** | Optional. Names of people mentioned or involved. |
+| **tags** | Optional. Short structured labels (e.g. `travel`, `work`). Hashtags in prose can stay in `rewritten_text` too. |
+| **mood** | Optional. Emotional tone in a few words (e.g. "grateful", "anxious"). |
+| **privacy** | Optional. `private` (default), `shared`, or `public`. |
 
-Embed text is `title + blank line + body`. Do not omit important content from the body.
+Embeddings use title, rewritten text, and any metadata you pass (location, people, tags, mood). Do not omit important content from `rewritten_text`.
 
 ## After saving
 

@@ -220,14 +220,12 @@ entries (
 -- HNSW index on embedding (ready for search_entries later)
 ```
 
-## ADR-lite decision log
+## Architecture decisions
 
-| Date | Decision |
-|------|----------|
-| 2026-06-19 | Tools-only MCP; no UI widgets |
-| 2026-06-19 | Next.js + `mcp-handler` at `/api/mcp` |
-| 2026-06-19 | pnpm workspaces only (no Turborepo) |
-| 2026-06-19 | `@journal/schemas` instead of generic `shared` package name |
-| 2026-06-19 | `init.sql` for pgvector extension; Drizzle for app schema |
-| 2026-06-19 | Separate local (768) vs prod (1536) databases |
-| 2026-06-19 | MCP auth skipped for local v1; `MCP_API_KEY` in prod (OAuth deferred) |
+Durable **why** lives in [`docs/adr/`](docs/adr/README.md) — grouped by date (`YYYY-MM-DD/`), one topic file per major decision, with cross-links between batches. This file stays the living **how/what** record — update diagrams and tables here when the system changes.
+
+| Batch | Topics |
+|-------|--------|
+| [2026-06-19](docs/adr/2026-06-19/) | MCP, monorepo, Postgres, embeddings, free-tier prod, deferred auth |
+| [2026-06-20](docs/adr/2026-06-20/) | Host Ollama workaround, GitHub Actions deploy (proposed) |
+| [2026-06-22](docs/adr/2026-06-22/) | Cursor-involved development, entry metadata |

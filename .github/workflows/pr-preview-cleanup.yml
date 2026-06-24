@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      NEON_PROJECT_ID: curly-butterfly-27033045
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,7 +57,7 @@ jobs:
         uses: actions/github-script@v7
         env:
           BRANCH_NAME: ${{ steps.branch.outputs.name }}
-          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          NEON_PROJECT_ID: curly-butterfly-27033045
         with:
           script: |
             const marker = '<!-- journal-preview-env -->';

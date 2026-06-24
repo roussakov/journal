@@ -122,7 +122,9 @@ Label-gated ephemeral previews per PR. **Not** managed by Terraform — [pr-prev
 
 `DATABASE_URL` for previews is injected per workflow run — never stored in Vercel project preview env (requires Terraform apply of the production-only `DATABASE_URL` target).
 
-### GitHub secrets and variables
+### GitHub secrets (only)
+
+Non-secret IDs and app config are **hardcoded** in [pr-preview.yml](../.github/workflows/pr-preview.yml) and [pr-preview-cleanup.yml](../.github/workflows/pr-preview-cleanup.yml). Update those files if Vercel/Neon project IDs or pool settings change.
 
 | Name | Type | Value / source |
 |------|------|----------------|
@@ -130,22 +132,10 @@ Label-gated ephemeral previews per PR. **Not** managed by Terraform — [pr-prev
 | `VERCEL_TOKEN` | secret | Same as `hcp.env` `VERCEL_API_TOKEN` |
 | `NEON_API_KEY` | secret | Same as `hcp.env` |
 | `NEON_ORG_ID` | secret | Same as `hcp.env` (`org-…`) |
-| `VERCEL_ORG_ID` | variable | `team_ZH2YES8vNPstdirjiHUQ82j4` (from `.vercel/project.json`) |
-| `VERCEL_PROJECT_ID` | variable | `prj_DJ5CbCbNeqIinrqGb0Rd4vJys6dR` |
-| `NEON_PROJECT_ID` | variable | `./apply.sh output -raw neon_project_id` (e.g. `curly-butterfly-27033045`) |
-| `TF_CLOUD_ORGANIZATION` | variable | `Journal` |
-| `TF_WORKSPACE` | variable | `journal-prod` |
-| `EMBEDDING_DIMENSIONS` | variable | `1536` (match Terraform / prod) |
-| `EMBEDDING_PROVIDER` | variable | `vercel-gateway` |
-| `EMBEDDING_MODEL` | variable | `openai/text-embedding-3-small` |
-| `DATABASE_POOL_MAX` | variable | `1` |
-| `DATABASE_POOL_IDLE_TIMEOUT` | variable | `0` |
-| `DATABASE_POOL_CONNECT_TIMEOUT` | variable | `30` |
-| `DATABASE_POOL_MAX_LIFETIME` | variable | `1800` |
 
-`DATABASE_URL` is **not** a GitHub variable — set per run from `neonctl` after the preview branch exists.
+Add in repo **Settings → Secrets and variables → Actions → Secrets**. No repository variables required.
 
-Add variables manually: repo **Settings → Secrets and variables → Actions → Variables** (one name/value per row).
+`DATABASE_URL` is **not** stored in GitHub — set per run from `neonctl` after the preview branch exists.
 
 Create the **`preview`** label in GitHub (Issues → Labels) if it does not exist.
 
@@ -155,7 +145,7 @@ Create the **`preview`** label in GitHub (Issues → Labels) if it does not exis
   ```bash
   cd infra/terraform && ./apply.sh plan && ./apply.sh apply
   ```
-- [ ] **GitHub secrets and variables** — table above
+- [ ] **GitHub secrets** — table above (no repository variables needed)
 - [ ] **Merge workflows to `master`** — `pr-preview.yml`, `pr-preview-cleanup.yml`, `preview-branch-name.sh`
 - [ ] **Open test PR** → add `preview` label
 - [ ] **Verify** — PR comment (Ready), MCP endpoint responds, Neon branch in console

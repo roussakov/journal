@@ -20,25 +20,27 @@ jobs:
       (github.event.action != 'labeled' || github.event.label.name == 'preview')
     runs-on: ubuntu-latest
     env:
+      # Secrets — set in GitHub: Settings → Secrets and variables → Actions → Secrets
       TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       TF_VAR_neon_org_id: ${{ secrets.NEON_ORG_ID }}
-      TF_CLI_CONFIG_FILE: ${{ github.workspace }}/infra/terraform/.terraformrc
-      TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
-      TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
       VERCEL_API_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
-      EMBEDDING_DIMENSIONS: ${{ vars.EMBEDDING_DIMENSIONS }}
-      EMBEDDING_PROVIDER: ${{ vars.EMBEDDING_PROVIDER }}
-      EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL }}
-      DATABASE_POOL_MAX: ${{ vars.DATABASE_POOL_MAX }}
-      DATABASE_POOL_IDLE_TIMEOUT: ${{ vars.DATABASE_POOL_IDLE_TIMEOUT }}
-      DATABASE_POOL_CONNECT_TIMEOUT: ${{ vars.DATABASE_POOL_CONNECT_TIMEOUT }}
-      DATABASE_POOL_MAX_LIFETIME: ${{ vars.DATABASE_POOL_MAX_LIFETIME }}
+      # Non-secret config — hardcoded (change here if infra IDs change)
+      TF_CLI_CONFIG_FILE: ${{ github.workspace }}/infra/terraform/.terraformrc
+      TF_CLOUD_ORGANIZATION: Journal
+      TF_WORKSPACE: journal-prod
+      VERCEL_ORG_ID: team_ZH2YES8vNPstdirjiHUQ82j4
+      VERCEL_PROJECT_ID: prj_DJ5CbCbNeqIinrqGb0Rd4vJys6dR
+      NEON_PROJECT_ID: curly-butterfly-27033045
+      EMBEDDING_DIMENSIONS: "1536"
+      EMBEDDING_PROVIDER: vercel-gateway
+      EMBEDDING_MODEL: openai/text-embedding-3-small
+      DATABASE_POOL_MAX: "1"
+      DATABASE_POOL_IDLE_TIMEOUT: "0"
+      DATABASE_POOL_CONNECT_TIMEOUT: "30"
+      DATABASE_POOL_MAX_LIFETIME: "1800"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,11 +83,6 @@ jobs:
 
       - name: Configure Terraform credentials
         working-directory: infra/terraform
-        env:
-          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
-          TF_VAR_neon_org_id: ${{ secrets.NEON_ORG_ID }}
-          TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
-          TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
         run: |
           mkdir -p .terraform.d
           python3 - <<'PY'
@@ -181,7 +178,7 @@ jobs:
           BRANCH_NAME: ${{ steps.branch.outputs.name }}
           DEPLOY_URL: ${{ steps.vercel-deploy.outputs.url }}
           TF_PLAN_PATH: ${{ github.workspace }}/tf-plan.txt
-          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          NEON_PROJECT_ID: curly-butterfly-27033045
         with:
           script: |
             const marker = '<!-- journal-preview-env -->';

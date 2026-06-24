@@ -36,6 +36,17 @@ flowchart TB
     ProdApp -->|"embed on write"| ProdGateway
     ProdApp -->|"INSERT entry"| ProdNeon
   end
+
+  subgraph previewEnv [PR preview — label preview only]
+    direction TB
+    PreviewGHA["GitHub Actions pr-preview.yml"]
+    PreviewApp["Vercel preview deployment"]
+    PreviewNeon[(Neon preview/pr-N-slug 1536)]
+
+    PreviewGHA -->|"vercel deploy --prebuilt"| PreviewApp
+    PreviewGHA -->|"neonctl create + reset"| PreviewNeon
+    PreviewApp -->|"per-build DATABASE_URL"| PreviewNeon
+  end
 ```
 
 ## Local environment
@@ -103,22 +114,65 @@ flowchart LR
 | Host prompt | Same `docs/INSTRUCTIONS.md` | pasted into Custom GPT Instructions |
 | pgAdmin / Ollama | **Not used** | local dev only |
 
+## PR preview environment
+
+Ephemeral per-PR environments for manual testing before merge. Orchestrated by GitHub Actions — **not** Terraform. See [pr-preview-environments ADR](docs/adr/2026-06-23/pr-preview-environments.md).
+
+```mermaid
+flowchart LR
+  subgraph trigger [PR with preview label]
+    Label[preview label]
+  end
+
+  subgraph gha [GitHub Actions]
+    CI[typecheck + build]
+    TFPlan[terraform plan]
+    Neon[neonctl create + reset from main]
+    Migrate[pnpm db:migrate]
+    Vercel[vercel build + deploy --prebuilt]
+    Comment[PR comment upsert]
+    CI --> TFPlan --> Neon --> Migrate --> Vercel --> Comment
+  end
+
+  subgraph runtime [Preview runtime]
+    PreviewApp[Vercel preview URL]
+    PreviewDB[(Neon preview/pr-N-slug)]
+    PreviewApp --> PreviewDB
+  end
+
+  Label --> gha
+  Vercel --> PreviewApp
+  Neon --> PreviewDB
+```
+
+| Preview component | Runs as | URL / connection |
+|-------------------|---------|------------------|
+| Trigger | `preview` label on PR to `master` | [pr-preview.yml](.github/workflows/pr-preview.yml) |
+| MCP server | Vercel preview deployment (GHA) | `https://<hash>.vercel.app/api/mcp` (URL in PR comment) |
+| Postgres | Neon branch `preview/pr-{number}-{slug}` | Per-build `DATABASE_URL` from `neonctl` — not in Vercel project env |
+| Embeddings | Vercel AI Gateway | Shared preview env vars from Terraform (`EMBEDDING_*`) |
+| Data | Reset from prod `main` on every push | Preview-only writes lost on re-push |
+| Cleanup | PR close/merge | [pr-preview-cleanup.yml](.github/workflows/pr-preview-cleanup.yml) deletes Neon branch |
+| Auth | None (deferred) | Same as prod v1 |
+
+Branch naming: [.github/scripts/preview-branch-name.sh](.github/scripts/preview-branch-name.sh). Rollout steps: [infra/README.md — PR preview environments](infra/README.md#pr-preview-environments).
+
 ## Environment comparison
 
-| Concern | Local (v1) | Production |
-|---------|------------|------------------------|
-| **MCP endpoint** | `http://localhost:3000/api/mcp` | `https://<project>.vercel.app/api/mcp` |
-| **MCP host** | Cursor, MCP Inspector | ChatGPT Custom GPT |
-| **App runtime** | `pnpm dev` on host | Vercel serverless Node.js |
-| **Postgres** | docker-compose pgvector:pg17 | Neon via Vercel Marketplace |
-| **Postgres UI** | pgAdmin :5050 | Neon dashboard / SQL editor |
-| **Embeddings** | Ollama `nomic-embed-text` | AI Gateway `text-embedding-3-small` |
-| **Vector dims** | 768 | 1536 |
-| **EMBEDDING_PROVIDER** | `ollama` | `vercel-gateway` |
-| **DATABASE_URL** | `localhost:5432/journal` | Neon connection string |
-| **Auth** | None (v1 local) | `MCP_API_KEY` + OAuth (deferred) |
-| **Deploy** | None | Vercel Hobby (free) |
-| **Data** | Throwaway local volume | Canonical prod data |
+| Concern | Local (v1) | PR preview | Production |
+|---------|------------|------------|------------|
+| **MCP endpoint** | `http://localhost:3000/api/mcp` | `https://<hash>.vercel.app/api/mcp` (PR comment) | `https://<project>.vercel.app/api/mcp` |
+| **MCP host** | Cursor, MCP Inspector | Developer / Cursor (manual) | ChatGPT Custom GPT |
+| **App runtime** | `pnpm dev` on host | Vercel preview (GHA prebuilt deploy) | Vercel serverless Node.js |
+| **Postgres** | docker-compose pgvector:pg17 | Neon branch per PR (`preview/pr-N-slug`) | Neon `main` via Vercel env |
+| **Postgres UI** | pgAdmin :5050 | Neon dashboard | Neon dashboard / SQL editor |
+| **Embeddings** | Ollama `nomic-embed-text` | AI Gateway `text-embedding-3-small` | AI Gateway `text-embedding-3-small` |
+| **Vector dims** | 768 | 1536 | 1536 |
+| **EMBEDDING_PROVIDER** | `ollama` | `vercel-gateway` | `vercel-gateway` |
+| **DATABASE_URL** | `localhost:5432/journal` | Per-build in GHA only (not Vercel project preview env) | Neon pooled URL in Vercel `production` target |
+| **Auth** | None (v1 local) | None (deferred) | `MCP_API_KEY` + OAuth (deferred) |
+| **Deploy** | None | `preview` label → GHA | Vercel Hobby (manual / future `deploy.yml`) |
+| **Data** | Throwaway local volume | Prod snapshot reset each push; not canonical | Canonical prod data |
 
 **Rule:** never mix embedding models or vector dimensions within the same database. Local and prod are separate databases.
 
@@ -229,3 +283,4 @@ Durable **why** lives in [`docs/adr/`](docs/adr/README.md) — grouped by date (
 | [2026-06-19](docs/adr/2026-06-19/) | MCP, monorepo, Postgres, embeddings, free-tier prod, deferred auth |
 | [2026-06-20](docs/adr/2026-06-20/) | Host Ollama workaround, GitHub Actions deploy (proposed) |
 | [2026-06-22](docs/adr/2026-06-22/) | Cursor-involved development, entry metadata |
+| [2026-06-23](docs/adr/2026-06-23/) | PR preview environments (Neon + Vercel via GHA) |

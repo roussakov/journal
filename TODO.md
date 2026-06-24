@@ -19,10 +19,11 @@
 
 ## Deploy pipeline
 
+- [x] **PR preview environments** — label `preview` → [pr-preview.yml](.github/workflows/pr-preview.yml) (Neon branch + Vercel prebuilt deploy); cleanup on PR close. ADR: [pr-preview-environments.md](docs/adr/2026-06-23/pr-preview-environments.md). Rollout: [infra/README.md — PR preview environments](infra/README.md#pr-preview-environments).
 - [ ] **Single deploy pipeline — GitHub Actions as sole orchestrator** — one workflow file in repo, no split triggers:
-  - **Source of truth:** `.github/workflows/deploy.yml` defines PR checks and prod deploy; `infra/terraform/` defines cloud resources; nothing else auto-runs on push
+  - **Source of truth:** `.github/workflows/deploy.yml` defines prod deploy; `infra/terraform/` defines cloud resources; nothing else auto-runs on push
   - **Disable side triggers:** Vercel Git integration off (`enable_git_integration = false`); remove Terraform `null_resource.prod_migrations` local-exec; no manual `./apply.sh` for prod
-  - **On PR:** typecheck → build → `terraform plan` → optional Vercel preview via `vercel deploy` (no prod DB)
+  - **On PR:** typecheck → build → `terraform plan` (covered by `pr-preview.yml` when `preview` label is set; general PR checks in `pr.yml`)
   - **On merge to `master`:** `terraform apply` → `pnpm db:migrate` (Neon prod) → `vercel deploy --prod`
   - **HCP Terraform:** remote state only; workflow runs `terraform` CLI (same as `apply.sh`, credentials from GitHub secrets)
   - **Secrets (GitHub):** `TF_API_TOKEN`, `VERCEL_API_TOKEN`, `NEON_API_KEY`, `NEON_ORG_ID`; `DATABASE_URL` from Terraform output or Neon API after apply
@@ -32,4 +33,5 @@
 
 ## DevEx & ops
 
+- [ ] **Shell script tests with bats-core** — adopt [bats-core](https://github.com/bats-core/bats-core) for `.sh` scripts (start with `.github/scripts/preview-branch-name.sh`; extend to `infra/terraform/apply.sh`, `docker/pgadmin/entrypoint.sh`); run in CI alongside PR checks
 - [ ] Structured tags column (optional — tags in body work for v1)

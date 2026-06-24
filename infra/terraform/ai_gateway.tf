@@ -9,16 +9,19 @@ locals {
         key       = "EMBEDDING_PROVIDER"
         value     = "vercel-gateway"
         sensitive = false
+        target    = local.vercel_env_targets
       },
       {
         key       = "EMBEDDING_MODEL"
         value     = "openai/text-embedding-3-small"
         sensitive = false
+        target    = local.vercel_env_targets
       },
       {
         key       = "EMBEDDING_DIMENSIONS"
         value     = "1536"
         sensitive = false
+        target    = local.vercel_env_targets
       },
     ],
     var.ai_gateway_api_key != null ? [
@@ -26,6 +29,7 @@ locals {
         key       = "AI_GATEWAY_API_KEY"
         value     = var.ai_gateway_api_key
         sensitive = true
+        target    = local.vercel_env_targets
       },
     ] : [],
   )

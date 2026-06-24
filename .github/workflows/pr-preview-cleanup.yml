@@ -1,0 +1,122 @@
+name: PR preview cleanup
+
+on:
+  pull_request:
+    branches: [master]
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cleanup:
+    if: contains(github.event.pull_request.labels.*.name, 'preview')
+    runs-on: ubuntu-latest
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Neon branch name
+        id: branch
+        run: |
+          BRANCH_NAME=$(PR_NUMBER="${{ github.event.pull_request.number }}" \
+            HEAD_REF="${{ github.event.pull_request.head.ref }}" \
+            "${{ github.workspace }}/.github/scripts/preview-branch-name.sh")
+          echo "name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Install neonctl
+        run: npm install -g neonctl
+
+      - name: Delete Neon preview branch
+        id: neon-delete
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
+        run: |
+          set +e
+          delete_output=$(neonctl branches delete "$BRANCH_NAME" --project-id "$NEON_PROJECT_ID" 2>&1)
+          delete_status=$?
+          set -e
+
+          if [[ $delete_status -ne 0 ]]; then
+            if echo "$delete_output" | grep -qiE 'not found|404|does not exist|branch .+ not found'; then
+              echo "Neon branch already deleted or missing: $BRANCH_NAME"
+            else
+              echo "$delete_output" >&2
+              exit 1
+            fi
+          else
+            echo "Deleted Neon branch: $BRANCH_NAME"
+          fi
+
+      - name: Update PR comment
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+        with:
+          script: |
+            const marker = '<!-- journal-preview-env -->';
+            const pr = context.payload.pull_request;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const neonConsole = `https://console.neon.tech/app/projects/${process.env.NEON_PROJECT_ID}/branches`;
+            const branchName = process.env.BRANCH_NAME || '';
+            const jobStatus = '${{ job.status }}';
+
+            const statusLabel = jobStatus === 'success' ? 'Destroyed' : 'Cleanup failed';
+            const notes =
+              jobStatus === 'success'
+                ? [
+                    '- The Neon preview branch was deleted on PR close.',
+                    '- Vercel preview deployments are left inactive (harmless on Hobby).',
+                  ]
+                : [
+                    '- Preview cleanup did not complete successfully.',
+                    '- Check the workflow log and delete the Neon branch manually if needed.',
+                  ];
+
+            const body = [
+              marker,
+              '## Preview environment',
+              '',
+              '| | |',
+              '|---|---|',
+              `| **Status** | ${statusLabel} |`,
+              `| **Neon branch** | \`${branchName}\` |`,
+              `| **Neon console** | ${neonConsole} |`,
+              `| **Workflow** | [run #${context.runId}](${runUrl}) |`,
+              '',
+              '### Notes',
+              ...notes,
+              '',
+              '<sub>Preview removed on PR close</sub>',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              per_page: 100,
+            });
+
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body,
+              });
+            }

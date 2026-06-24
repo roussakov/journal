@@ -25,7 +25,7 @@ resource "vercel_project_environment_variables" "web" {
     for env in local.vercel_env_variables : {
       key       = env.key
       value     = env.value
-      target    = local.vercel_env_targets
+      target    = env.target
       sensitive = env.sensitive
     }
   ]

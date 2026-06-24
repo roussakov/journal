@@ -129,11 +129,11 @@ Non-secret IDs and app config are **hardcoded** in [pr-preview.yml](../.github/w
 | Name | Type | Value / source |
 |------|------|----------------|
 | `TF_API_TOKEN` | secret | Same as `hcp.env` — [HCP tokens](https://app.terraform.io/app/settings/tokens) |
-| `VERCEL_TOKEN` | secret | Same as `hcp.env` `VERCEL_API_TOKEN` |
+| `VERCEL_TOKEN` | secret | Same as `hcp.env` `VERCEL_API_TOKEN` (either `VERCEL_TOKEN` or `VERCEL_API_TOKEN` name works) |
 | `NEON_API_KEY` | secret | Same as `hcp.env` |
 | `NEON_ORG_ID` | secret | Same as `hcp.env` (`org-…`) |
 
-Add in repo **Settings → Secrets and variables → Actions → Secrets**. No repository variables required.
+Add in repo **Settings → Secrets and variables → Actions → Secrets**. No repository variables required. Paste token values with no trailing newline.
 
 `DATABASE_URL` is **not** stored in GitHub — set per run from `neonctl` after the preview branch exists.
 

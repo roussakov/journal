@@ -20,13 +20,6 @@ jobs:
       (github.event.action != 'labeled' || github.event.label.name == 'preview')
     runs-on: ubuntu-latest
     env:
-      # Secrets — set in GitHub: Settings → Secrets and variables → Actions → Secrets
-      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
-      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      TF_VAR_neon_org_id: ${{ secrets.NEON_ORG_ID }}
-      VERCEL_API_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
       # Non-secret config — hardcoded (change here if infra IDs change)
       TF_CLI_CONFIG_FILE: ${{ github.workspace }}/infra/terraform/.terraformrc
       TF_CLOUD_ORGANIZATION: Journal
@@ -45,6 +38,43 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Prepare provider secrets
+        env:
+          TF_API_TOKEN_IN: ${{ secrets.TF_API_TOKEN }}
+          VERCEL_TOKEN_IN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_API_TOKEN_IN: ${{ secrets.VERCEL_API_TOKEN }}
+          NEON_API_KEY_IN: ${{ secrets.NEON_API_KEY }}
+          NEON_ORG_ID_IN: ${{ secrets.NEON_ORG_ID }}
+        run: |
+          trim() { printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+
+          tf_token=$(trim "$TF_API_TOKEN_IN")
+          vercel_token=$(trim "$VERCEL_TOKEN_IN")
+          if [[ -z "$vercel_token" ]]; then
+            vercel_token=$(trim "$VERCEL_API_TOKEN_IN")
+          fi
+          neon_key=$(trim "$NEON_API_KEY_IN")
+          neon_org=$(trim "$NEON_ORG_ID_IN")
+
+          missing=()
+          test -n "$tf_token" || missing+=("TF_API_TOKEN")
+          test -n "$vercel_token" || missing+=("VERCEL_TOKEN or VERCEL_API_TOKEN")
+          test -n "$neon_key" || missing+=("NEON_API_KEY")
+          test -n "$neon_org" || missing+=("NEON_ORG_ID")
+          if ((${#missing[@]} > 0)); then
+            echo "Missing or empty GitHub secrets: ${missing[*]}" >&2
+            exit 1
+          fi
+
+          {
+            echo "TF_API_TOKEN=$tf_token"
+            echo "TF_TOKEN_app_terraform_io=$tf_token"
+            echo "VERCEL_API_TOKEN=$vercel_token"
+            echo "VERCEL_TOKEN=$vercel_token"
+            echo "NEON_API_KEY=$neon_key"
+            echo "TF_VAR_neon_org_id=$neon_org"
+          } >> "$GITHUB_ENV"
 
       - name: Resolve Neon branch name
         id: branch

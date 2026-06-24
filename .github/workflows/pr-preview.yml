@@ -1,0 +1,337 @@
+name: PR preview
+
+on:
+  pull_request:
+    branches: [master]
+    types: [labeled, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'preview') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'preview')
+    runs-on: ubuntu-latest
+    env:
+      # Non-secret config — hardcoded (change here if infra IDs change)
+      TF_CLI_CONFIG_FILE: ${{ github.workspace }}/infra/terraform/.terraformrc
+      TF_CLOUD_ORGANIZATION: Journal
+      TF_WORKSPACE: journal-prod
+      TF_VAR_vercel_production_hostname: journal-ten-nu.vercel.app
+      VERCEL_ORG_ID: team_ZH2YES8vNPstdirjiHUQ82j4
+      VERCEL_PROJECT_ID: prj_DJ5CbCbNeqIinrqGb0Rd4vJys6dR
+      NEON_PROJECT_ID: curly-butterfly-27033045
+      EMBEDDING_DIMENSIONS: "1536"
+      EMBEDDING_PROVIDER: vercel-gateway
+      EMBEDDING_MODEL: openai/text-embedding-3-small
+      DATABASE_POOL_MAX: "1"
+      DATABASE_POOL_IDLE_TIMEOUT: "0"
+      DATABASE_POOL_CONNECT_TIMEOUT: "30"
+      DATABASE_POOL_MAX_LIFETIME: "1800"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare provider secrets
+        env:
+          TF_API_TOKEN_IN: ${{ secrets.TF_API_TOKEN }}
+          VERCEL_TOKEN_IN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_API_TOKEN_IN: ${{ secrets.VERCEL_API_TOKEN }}
+          NEON_API_KEY_IN: ${{ secrets.NEON_API_KEY }}
+          NEON_ORG_ID_IN: ${{ secrets.NEON_ORG_ID }}
+        run: |
+          trim() { printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+
+          tf_token=$(trim "$TF_API_TOKEN_IN")
+          vercel_token=$(trim "$VERCEL_TOKEN_IN")
+          if [[ -z "$vercel_token" ]]; then
+            vercel_token=$(trim "$VERCEL_API_TOKEN_IN")
+          fi
+          neon_key=$(trim "$NEON_API_KEY_IN")
+          neon_org=$(trim "$NEON_ORG_ID_IN")
+
+          missing=()
+          test -n "$tf_token" || missing+=("TF_API_TOKEN")
+          test -n "$vercel_token" || missing+=("VERCEL_TOKEN or VERCEL_API_TOKEN")
+          test -n "$neon_key" || missing+=("NEON_API_KEY")
+          test -n "$neon_org" || missing+=("NEON_ORG_ID")
+          if ((${#missing[@]} > 0)); then
+            echo "Missing or empty GitHub secrets: ${missing[*]}" >&2
+            exit 1
+          fi
+
+          {
+            echo "TF_API_TOKEN=$tf_token"
+            echo "TF_TOKEN_app_terraform_io=$tf_token"
+            echo "VERCEL_API_TOKEN=$vercel_token"
+            echo "VERCEL_TOKEN=$vercel_token"
+            echo "NEON_API_KEY=$neon_key"
+            echo "TF_VAR_neon_org_id=$neon_org"
+          } >> "$GITHUB_ENV"
+
+      - name: Resolve Neon branch name
+        id: branch
+        run: |
+          BRANCH_NAME=$(PR_NUMBER="${{ github.event.pull_request.number }}" \
+            HEAD_REF="${{ github.event.pull_request.head.ref }}" \
+            "${{ github.workspace }}/.github/scripts/preview-branch-name.sh")
+          echo "name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-preview-pr-${{ github.event.pull_request.number }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/**', 'packages/**') }}
+          restore-keys: |
+            next-preview-pr-${{ github.event.pull_request.number }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            next-preview-pr-${{ github.event.pull_request.number }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        id: typecheck
+        run: pnpm -r typecheck
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+
+      - name: Configure Terraform credentials
+        working-directory: infra/terraform
+        run: |
+          mkdir -p .terraform.d
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          token = os.environ["TF_API_TOKEN"]
+          Path(".terraform.d/credentials.tfrc.json").write_text(
+              json.dumps({"credentials": {"app.terraform.io": {"token": token}}}),
+              encoding="utf-8",
+          )
+          PY
+
+          printf '%s\n' 'credentials_helper "automatic" {}' > .terraformrc
+
+      - name: Terraform plan
+        id: terraform-plan
+        working-directory: infra/terraform
+        run: |
+          terraform init -input=false
+          terraform plan -no-color -input=false -out=tfplan
+          terraform show -no-color tfplan > "${{ github.workspace }}/tf-plan.txt"
+
+      - name: Install neonctl
+        run: npm install -g neonctl
+
+      - name: Neon branch create or reuse
+        id: neon
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
+        run: |
+          set +e
+          create_output=$(neonctl branches create \
+            --project-id "$NEON_PROJECT_ID" \
+            --name "$BRANCH_NAME" \
+            --parent main \
+            --output json 2>&1)
+          create_status=$?
+          set -e
+
+          if [[ $create_status -ne 0 ]]; then
+            if echo "$create_output" | grep -qiE 'already exists|branch .+ already'; then
+              echo "Neon branch already exists: $BRANCH_NAME"
+            else
+              echo "$create_output" >&2
+              exit 1
+            fi
+          else
+            echo "Created Neon branch: $BRANCH_NAME"
+          fi
+
+      - name: Reset Neon branch from main
+        id: neon-reset
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
+        run: |
+          neonctl branches reset "$BRANCH_NAME" --parent --project-id "$NEON_PROJECT_ID"
+
+      - name: Migrate preview database
+        id: migrate
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
+        run: |
+          DATABASE_URL=$(neonctl connection-string "$BRANCH_NAME" \
+            --project-id "$NEON_PROJECT_ID" \
+            --pooled \
+            --role-name journal \
+            --database-name journal)
+          export DATABASE_URL
+          echo "::add-mask::$DATABASE_URL"
+          echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
+          pnpm db:migrate
+
+      - name: Build (CI validation)
+        id: build
+        run: pnpm --filter @journal/web build
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      # Run from repo root — not apps/web. Dashboard rootDirectory is apps/web; cd apps/web
+      # makes the CLI use apps/web/apps/web and fails with spawn sh ENOENT.
+      - name: Vercel prebuilt deploy
+        id: vercel-deploy
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          vercel build --token="$VERCEL_TOKEN"
+          # Per-PR DATABASE_URL is not in Vercel project preview env (prod-only in
+          # Terraform). Prebuilt deploys need runtime env injected explicitly.
+          DEPLOY_URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN" \
+            --env "DATABASE_URL=$DATABASE_URL")
+          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Update PR comment
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name }}
+          DEPLOY_URL: ${{ steps.vercel-deploy.outputs.url }}
+          TF_PLAN_PATH: ${{ github.workspace }}/tf-plan.txt
+          NEON_PROJECT_ID: curly-butterfly-27033045
+        with:
+          script: |
+            const marker = '<!-- journal-preview-env -->';
+            const pr = context.payload.pull_request;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const neonConsole = `https://console.neon.tech/app/projects/${process.env.NEON_PROJECT_ID}/branches`;
+            const branchName = process.env.BRANCH_NAME || '';
+            const deployUrl = process.env.DEPLOY_URL || '';
+            const sha = pr.head.sha.slice(0, 7);
+
+            const stepOutcomes = [
+              ['typecheck', '${{ steps.typecheck.outcome }}'],
+              ['terraform plan', '${{ steps.terraform-plan.outcome }}'],
+              ['neon branch create', '${{ steps.neon.outcome }}'],
+              ['neon branch reset', '${{ steps.neon-reset.outcome }}'],
+              ['db migrate', '${{ steps.migrate.outcome }}'],
+              ['build', '${{ steps.build.outcome }}'],
+              ['vercel deploy', '${{ steps.vercel-deploy.outcome }}'],
+            ];
+
+            const failed = stepOutcomes.find(([, outcome]) => outcome === 'failure');
+            const jobStatus = '${{ job.status }}';
+
+            let body;
+
+            if (jobStatus === 'success') {
+              let planBlock = '_Terraform plan output not available._';
+              try {
+                const fs = require('fs');
+                const planPath = process.env.TF_PLAN_PATH;
+                if (fs.existsSync(planPath)) {
+                  let plan = fs.readFileSync(planPath, 'utf8');
+                  if (plan.length > 60000) {
+                    plan = plan.slice(0, 60000) + '\n\n… (truncated — see workflow log for full plan)';
+                  }
+                  planBlock = '```\n' + plan + '\n```';
+                }
+              } catch (error) {
+                planBlock = '_Could not read terraform plan output._';
+              }
+
+              body = [
+                marker,
+                '## Preview environment',
+                '',
+                '| | |',
+                '|---|---|',
+                '| **Status** | Ready |',
+                `| **App** | ${deployUrl} |`,
+                `| **MCP endpoint** | ${deployUrl}/api/mcp |`,
+                `| **Neon branch** | \`${branchName}\` |`,
+                `| **Neon console** | ${neonConsole} |`,
+                '| **DB refreshed** | yes — reset from `main` on this push |',
+                '| **Parent branch** | `main` |',
+                `| **Commit** | \`${sha}\` |`,
+                '| **Migrations** | applied |',
+                `| **Workflow** | [run #${context.runId}](${runUrl}) |`,
+                '',
+                '<details>',
+                '<summary>Terraform plan</summary>',
+                '',
+                planBlock,
+                '',
+                '</details>',
+                '',
+                '### Notes',
+                '- Preview DB is **reset from prod `main` on every push**. Preview-only writes do not survive re-push.',
+                '- Re-push redeploys app + refreshes DB; URL may change — this comment always has the latest.',
+                '- Preview is removed when the PR is closed or merged.',
+                '',
+                '<sub>Requires label: `preview`</sub>',
+              ].join('\n');
+            } else {
+              const statusLabel = jobStatus === 'cancelled' ? 'Cancelled' : 'Failed';
+              const failedStep = failed ? failed[0] : 'unknown step';
+              body = [
+                marker,
+                '## Preview environment',
+                '',
+                '| | |',
+                '|---|---|',
+                `| **Status** | ${statusLabel} |`,
+                `| **Failed step** | ${failedStep} |`,
+                `| **Neon branch** | \`${branchName || '—'}\` |`,
+                `| **Commit** | \`${sha}\` |`,
+                `| **Workflow** | [run #${context.runId}](${runUrl}) |`,
+                '',
+                '### Notes',
+                '- No preview URLs were published because the workflow did not complete successfully.',
+                '- Fix the failure and push again (or re-add the `preview` label) to retry.',
+                '',
+                '<sub>Requires label: `preview`</sub>',
+              ].join('\n');
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              per_page: 100,
+            });
+
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body,
+              });
+            }

@@ -15,6 +15,11 @@ resource "vercel_project" "web" {
     repo              = var.git_repository
     production_branch = var.production_branch
   } : null
+
+  # Public preview URLs for label-gated PR deploys (see docs/adr/2026-06-23/pr-preview-environments.md).
+  vercel_authentication = {
+    deployment_type = "none"
+  }
 }
 
 resource "vercel_project_environment_variables" "web" {

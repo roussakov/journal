@@ -81,17 +81,12 @@ jobs:
 
       - name: Configure Terraform credentials
         working-directory: infra/terraform
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+          TF_VAR_neon_org_id: ${{ secrets.NEON_ORG_ID }}
+          TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+          TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
         run: |
-          missing=()
-          [[ -z "${TF_API_TOKEN:-}" ]] && missing+=("TF_API_TOKEN (secret)")
-          [[ -z "${TF_CLOUD_ORGANIZATION:-}" ]] && missing+=("TF_CLOUD_ORGANIZATION (variable)")
-          [[ -z "${TF_WORKSPACE:-}" ]] && missing+=("TF_WORKSPACE (variable)")
-          [[ -z "${TF_VAR_neon_org_id:-}" ]] && missing+=("NEON_ORG_ID (secret)")
-          if ((${#missing[@]} > 0)); then
-            echo "Missing GitHub configuration: ${missing[*]}" >&2
-            exit 1
-          fi
-
           mkdir -p .terraform.d
           python3 - <<'PY'
           import json

@@ -24,15 +24,21 @@ jobs:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       TF_VAR_neon_org_id: ${{ secrets.NEON_ORG_ID }}
       TF_CLI_CONFIG_FILE: ${{ github.workspace }}/infra/terraform/.terraformrc
-      TF_CLOUD_ORGANIZATION: Journal
-      TF_WORKSPACE: journal-prod
+      TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+      TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
       VERCEL_API_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
       NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
-      EMBEDDING_DIMENSIONS: "1536"
+      EMBEDDING_DIMENSIONS: ${{ vars.EMBEDDING_DIMENSIONS }}
+      EMBEDDING_PROVIDER: ${{ vars.EMBEDDING_PROVIDER }}
+      EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL }}
+      DATABASE_POOL_MAX: ${{ vars.DATABASE_POOL_MAX }}
+      DATABASE_POOL_IDLE_TIMEOUT: ${{ vars.DATABASE_POOL_IDLE_TIMEOUT }}
+      DATABASE_POOL_CONNECT_TIMEOUT: ${{ vars.DATABASE_POOL_CONNECT_TIMEOUT }}
+      DATABASE_POOL_MAX_LIFETIME: ${{ vars.DATABASE_POOL_MAX_LIFETIME }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,10 +74,6 @@ jobs:
       - name: Typecheck
         id: typecheck
         run: pnpm -r typecheck
-
-      - name: Build (CI validation)
-        id: build
-        run: pnpm --filter @journal/web build
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -146,24 +148,19 @@ jobs:
             --pooled \
             --role-name journal \
             --database-name journal)
-          export DATABASE_URL
+          echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
           pnpm db:migrate
+
+      - name: Build (CI validation)
+        id: build
+        run: pnpm --filter @journal/web build
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
       - name: Vercel prebuilt deploy
         id: vercel-deploy
-        env:
-          BRANCH_NAME: ${{ steps.branch.outputs.name }}
         run: |
-          DATABASE_URL=$(neonctl connection-string "$BRANCH_NAME" \
-            --project-id "$NEON_PROJECT_ID" \
-            --pooled \
-            --role-name journal \
-            --database-name journal)
-          export DATABASE_URL
-
           cd apps/web
           vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
           vercel build --token="$VERCEL_TOKEN"
@@ -190,11 +187,11 @@ jobs:
 
             const stepOutcomes = [
               ['typecheck', '${{ steps.typecheck.outcome }}'],
-              ['build', '${{ steps.build.outcome }}'],
               ['terraform plan', '${{ steps.terraform-plan.outcome }}'],
               ['neon branch create', '${{ steps.neon.outcome }}'],
               ['neon branch reset', '${{ steps.neon-reset.outcome }}'],
               ['db migrate', '${{ steps.migrate.outcome }}'],
+              ['build', '${{ steps.build.outcome }}'],
               ['vercel deploy', '${{ steps.vercel-deploy.outcome }}'],
             ];
 

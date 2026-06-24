@@ -133,6 +133,19 @@ Label-gated ephemeral previews per PR. **Not** managed by Terraform — [pr-prev
 | `VERCEL_ORG_ID` | variable | `team_ZH2YES8vNPstdirjiHUQ82j4` (from `.vercel/project.json`) |
 | `VERCEL_PROJECT_ID` | variable | `prj_DJ5CbCbNeqIinrqGb0Rd4vJys6dR` |
 | `NEON_PROJECT_ID` | variable | `./apply.sh output -raw neon_project_id` (e.g. `curly-butterfly-27033045`) |
+| `TF_CLOUD_ORGANIZATION` | variable | `Journal` |
+| `TF_WORKSPACE` | variable | `journal-prod` |
+| `EMBEDDING_DIMENSIONS` | variable | `1536` (match Terraform / prod) |
+| `EMBEDDING_PROVIDER` | variable | `vercel-gateway` |
+| `EMBEDDING_MODEL` | variable | `openai/text-embedding-3-small` |
+| `DATABASE_POOL_MAX` | variable | `1` |
+| `DATABASE_POOL_IDLE_TIMEOUT` | variable | `0` |
+| `DATABASE_POOL_CONNECT_TIMEOUT` | variable | `30` |
+| `DATABASE_POOL_MAX_LIFETIME` | variable | `1800` |
+
+`DATABASE_URL` is **not** a GitHub variable — set per run from `neonctl` after the preview branch exists.
+
+Add variables manually: repo **Settings → Secrets and variables → Actions → Variables** (one name/value per row).
 
 Create the **`preview`** label in GitHub (Issues → Labels) if it does not exist.
 

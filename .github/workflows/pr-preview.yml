@@ -183,6 +183,7 @@ jobs:
             --pooled \
             --role-name journal \
             --database-name journal)
+          export DATABASE_URL
           echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
           pnpm db:migrate
 

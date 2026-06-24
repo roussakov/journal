@@ -184,6 +184,7 @@ jobs:
             --role-name journal \
             --database-name journal)
           export DATABASE_URL
+          echo "::add-mask::$DATABASE_URL"
           echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
           pnpm db:migrate
 
@@ -201,7 +202,10 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
           vercel build --token="$VERCEL_TOKEN"
-          DEPLOY_URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          # Per-PR DATABASE_URL is not in Vercel project preview env (prod-only in
+          # Terraform). Prebuilt deploys need runtime env injected explicitly.
+          DEPLOY_URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN" \
+            --env "DATABASE_URL=$DATABASE_URL")
           echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
 
       - name: Update PR comment

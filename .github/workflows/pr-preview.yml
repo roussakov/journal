@@ -31,6 +31,7 @@ jobs:
       TF_CLI_CONFIG_FILE: ${{ github.workspace }}/infra/terraform/.terraformrc
       TF_CLOUD_ORGANIZATION: Journal
       TF_WORKSPACE: journal-prod
+      TF_VAR_vercel_production_hostname: journal-ten-nu.vercel.app
       VERCEL_ORG_ID: team_ZH2YES8vNPstdirjiHUQ82j4
       VERCEL_PROJECT_ID: prj_DJ5CbCbNeqIinrqGb0Rd4vJys6dR
       NEON_PROJECT_ID: curly-butterfly-27033045

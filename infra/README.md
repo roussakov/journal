@@ -124,7 +124,7 @@ Label-gated ephemeral previews per PR. **Not** managed by Terraform — [pr-prev
 
 ### GitHub secrets (only)
 
-Non-secret IDs and app config are **hardcoded** in [pr-preview.yml](../.github/workflows/pr-preview.yml) and [pr-preview-cleanup.yml](../.github/workflows/pr-preview-cleanup.yml). Update those files if Vercel/Neon project IDs or pool settings change.
+Non-secret IDs and app config are **hardcoded** in [pr-preview.yml](../.github/workflows/pr-preview.yml) and [pr-preview-cleanup.yml](../.github/workflows/pr-preview-cleanup.yml). Update those files if Vercel/Neon project IDs, production hostname, or pool settings change.
 
 | Name | Type | Value / source |
 |------|------|----------------|

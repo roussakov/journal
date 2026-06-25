@@ -1,6 +1,7 @@
 # Defer MCP Bearer auth and OAuth
 
-- **Status:** accepted
+- **Status:** superseded
+- **Superseded by:** [clerk-mcp-oauth-auth.md](../2026-06-25/clerk-mcp-oauth-auth.md)
 - **Relates to:** [tools-only-mcp.md](tools-only-mcp.md), [free-tier-production.md](free-tier-production.md)
 
 ## Context

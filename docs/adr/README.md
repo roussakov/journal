@@ -43,6 +43,7 @@ Create a topic file when a decision is hard to reverse, has cost/security trade-
 | [2026-06-20](2026-06-20/) | Host Ollama workaround, GitHub Actions deploy | mixed |
 | [2026-06-22](2026-06-22/) | Cursor-involved development, entry metadata model | accepted |
 | [2026-06-23](2026-06-23/) | PR preview environments (Neon + Vercel via GHA) | accepted |
+| [2026-06-25](2026-06-25/) | Clerk app auth, MCP OAuth, admin RBAC | accepted |
 
 ## Roles
 

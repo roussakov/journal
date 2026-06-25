@@ -9,4 +9,4 @@ Greenfield decisions for the journal MCP app: interface shape, repo layout, stor
 | Postgres + pgvector + Drizzle | [postgres-pgvector-drizzle.md](postgres-pgvector-drizzle.md) | accepted |
 | Embeddings per environment | [embedding-providers-by-environment.md](embedding-providers-by-environment.md) | accepted |
 | Free-tier production | [free-tier-production.md](free-tier-production.md) | accepted |
-| Deferred MCP auth | [defer-mcp-auth.md](defer-mcp-auth.md) | accepted |
+| Deferred MCP auth | [defer-mcp-auth.md](defer-mcp-auth.md) | superseded → [2026-06-25](../2026-06-25/clerk-mcp-oauth-auth.md) |

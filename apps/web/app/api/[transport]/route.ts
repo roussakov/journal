@@ -1,6 +1,9 @@
 import { configureMcpServer } from "@/mcp/server";
 import { SERVER_INSTRUCTIONS } from "@/mcp/instructions";
-import { createMcpHandler } from "mcp-handler";
+import { userHasAdminRole } from "@/auth/admin";
+import { verifyClerkToken } from "@clerk/mcp-tools/next";
+import { auth } from "@clerk/nextjs/server";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
 
 export const runtime = "nodejs";
 
@@ -21,4 +24,26 @@ const handler = createMcpHandler(
   },
 );
 
-export { handler as GET, handler as POST, handler as DELETE };
+const authHandler = withMcpAuth(
+  handler,
+  async (_, token) => {
+    const clerkAuth = await auth({ acceptsToken: "oauth_token" });
+    const authInfo = verifyClerkToken(clerkAuth, token);
+    if (!authInfo) {
+      return undefined;
+    }
+
+    const userId = authInfo.extra?.userId;
+    if (typeof userId !== "string" || !(await userHasAdminRole(userId))) {
+      return undefined;
+    }
+
+    return authInfo;
+  },
+  {
+    required: true,
+    resourceMetadataPath: "/.well-known/oauth-protected-resource/mcp",
+  },
+);
+
+export { authHandler as GET, authHandler as POST, authHandler as DELETE };

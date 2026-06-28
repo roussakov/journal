@@ -153,7 +153,7 @@ flowchart LR
 | Embeddings | Vercel AI Gateway | Shared preview env vars from Terraform (`EMBEDDING_*`) |
 | Data | Reset from prod `main` on every push | Preview-only writes lost on re-push |
 | Cleanup | PR close/merge | [pr-preview-cleanup.yml](.github/workflows/pr-preview-cleanup.yml) deletes Neon branch |
-| Auth | None (deferred) | Same as prod v1 |
+| Auth | Clerk + MCP OAuth (admin) | Same as prod |
 
 Branch naming: [.github/scripts/preview-branch-name.sh](.github/scripts/preview-branch-name.sh). Rollout steps: [infra/README.md — PR preview environments](infra/README.md#pr-preview-environments).
 
@@ -170,7 +170,7 @@ Branch naming: [.github/scripts/preview-branch-name.sh](.github/scripts/preview-
 | **Vector dims** | 768 | 1536 | 1536 |
 | **EMBEDDING_PROVIDER** | `ollama` | `vercel-gateway` | `vercel-gateway` |
 | **DATABASE_URL** | `localhost:5432/journal` | Per-build in GHA only (not Vercel project preview env) | Neon pooled URL in Vercel `production` target |
-| **Auth** | None (v1 local) | None (deferred) | `MCP_API_KEY` + OAuth (deferred) |
+| **Auth** | Clerk + MCP OAuth (`publicMetadata.role: admin`) | Clerk + MCP OAuth (admin) | Clerk + MCP OAuth (admin) |
 | **Deploy** | None | `preview` label → GHA | Vercel Hobby (manual / future `deploy.yml`) |
 | **Data** | Throwaway local volume | Prod snapshot reset each push; not canonical | Canonical prod data |
 

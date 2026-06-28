@@ -14,8 +14,10 @@
 
 ## Auth & security
 
-- [ ] Re-enable MCP Bearer auth (`MCP_API_KEY` + `withMcpAuth`)
-- [ ] OAuth 2.1 for public connectors (ChatGPT)
+- [x] MCP OAuth via Clerk (`withMcpAuth` + admin `publicMetadata.role`) — ADR: [clerk-mcp-oauth-auth.md](docs/adr/2026-06-25/clerk-mcp-oauth-auth.md)
+- [ ] Add Clerk env vars to Terraform (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`)
+- [ ] Remove `MCP_API_KEY` from Terraform and `.env.example` / `.env.production.example`
+- [ ] OAuth 2.1 for public connectors (ChatGPT) — partial via Clerk MCP OAuth; validate ChatGPT connector requirements
 
 ## Deploy pipeline
 

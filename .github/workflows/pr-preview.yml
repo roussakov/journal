@@ -178,15 +178,22 @@ jobs:
         env:
           BRANCH_NAME: ${{ steps.branch.outputs.name }}
         run: |
-          DATABASE_URL=$(neonctl connection-string "$BRANCH_NAME" \
+          # Migrations need a direct connection — pooled (PgBouncer) breaks DDL/advisory locks.
+          # Runtime deploy uses pooled below (matches prod Vercel DATABASE_URL).
+          DIRECT_DATABASE_URL=$(neonctl connection-string "$BRANCH_NAME" \
+            --project-id "$NEON_PROJECT_ID" \
+            --role-name journal \
+            --database-name journal)
+          echo "::add-mask::$DIRECT_DATABASE_URL"
+          DATABASE_URL="$DIRECT_DATABASE_URL" pnpm db:migrate
+
+          POOLED_DATABASE_URL=$(neonctl connection-string "$BRANCH_NAME" \
             --project-id "$NEON_PROJECT_ID" \
             --pooled \
             --role-name journal \
             --database-name journal)
-          export DATABASE_URL
-          echo "::add-mask::$DATABASE_URL"
-          echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
-          pnpm db:migrate
+          echo "::add-mask::$POOLED_DATABASE_URL"
+          echo "DATABASE_URL=$POOLED_DATABASE_URL" >> "$GITHUB_ENV"
 
       - name: Build (CI validation)
         id: build

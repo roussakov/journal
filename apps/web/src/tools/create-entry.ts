@@ -3,6 +3,23 @@ import { embedText, formatEntryEmbedText } from "@journal/embeddings";
 import { createEntryInputSchema } from "@journal/schemas";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { getAppBaseUrl } from "@/lib/app-base-url";
+import { isCreateEntryServiceEnabled } from "@/lib/feature-flags";
+import {
+  createEntryService,
+  type CreateEntryResult,
+} from "@/server/services/create-entry-service";
+
+function formatMcpResponseWithAttachmentsUrl(result: CreateEntryResult) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `Entry saved (id: ${result.id})\nAdd attachments: ${result.attachmentsUrl}`,
+      },
+    ],
+  };
+}
 
 export function registerCreateEntryTool(server: McpServer): void {
   server.registerTool(
@@ -70,6 +87,11 @@ export function registerCreateEntryTool(server: McpServer): void {
         mood,
       });
 
+      if (isCreateEntryServiceEnabled()) {
+        const result = await createEntryService.create(input);
+        return formatMcpResponseWithAttachmentsUrl(result);
+      }
+
       const embedding = await embedText(
         formatEntryEmbedText({
           title: input.title,
@@ -99,14 +121,10 @@ export function registerCreateEntryTool(server: McpServer): void {
         })
         .returning({ id: entries.id });
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `Entry saved (id: ${row.id})`,
-          },
-        ],
-      };
+      return formatMcpResponseWithAttachmentsUrl({
+        id: row.id,
+        attachmentsUrl: `${getAppBaseUrl()}/entries/${row.id}/attachments`,
+      });
     },
   );
 }

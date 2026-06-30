@@ -183,21 +183,115 @@ sequenceDiagram
   participant User
   participant Host as Cursor_or_Inspector
   participant MCP as Next.js_api_mcp
+  participant Tool as create_entry_tool
+  participant Svc as create_entry_service_optional
   participant Embed as Ollama_nomic_embed
+  participant Repo as entry_repository
   participant DB as Postgres_pgvector
 
   User->>Host: Save this journal entry...
   Host->>Host: Read docs/INSTRUCTIONS.md
-  Host->>MCP: tools/call create_entry title body
-  MCP->>Embed: embedText title plus body
-  Embed-->>MCP: vector 768
-  MCP->>DB: INSERT entries with embedding
-  DB-->>MCP: row id
-  MCP-->>Host: text Entry saved
-  Host-->>User: Confirms save
+  Host->>MCP: tools/call create_entry
+  MCP->>Tool: validate input
+  alt CREATE_ENTRY_SERVICE_ENABLED true
+    Tool->>Svc: create(input)
+    Svc->>Embed: embedText
+    Embed-->>Svc: vector 768
+    Svc->>Repo: insertEntry
+    Repo->>DB: INSERT entries
+  else flag false default
+    Tool->>Embed: embedText
+    Embed-->>Tool: vector 768
+    Tool->>DB: INSERT entries inline
+  end
+  DB-->>Tool: row id
+  Tool-->>Host: Entry saved + attachments URL
+  Host-->>User: Confirms save and link
 ```
 
 Production sequence is identical except: Host = ChatGPT, MCP = Vercel HTTPS, Embed = AI Gateway, DB = Neon, vector = 1536.
+
+`CREATE_ENTRY_SERVICE_ENABLED` (default false) selects **implementation** only; both paths return the same MCP text including the attachments deep link.
+
+## apps/web layering
+
+```mermaid
+flowchart TB
+  subgraph entrypoints [Entrypoints — thin]
+    MCP["tools/create-entry.ts"]
+    Page["app/entries/.../page.tsx"]
+    API["app/api/entries/.../route.ts"]
+    UI["app/.../attachments/_components/*"]
+  end
+
+  subgraph serverModule [src/server/ — server-only]
+    subgraph services [services/]
+      CreateSvc["create-entry-service.ts"]
+      UploadSvc["attachment-upload-service.ts"]
+      Noop["attachments/storage/noop-provider.ts"]
+    end
+    subgraph repos [repositories/]
+      EntryRepo["entry-repository.ts"]
+    end
+    RouteAuth["auth/check-admin-access.ts"]
+  end
+
+  subgraph cross [Cross-cutting]
+    PageAuth["auth/guard-admin-page.ts"]
+    Lib["lib/logger.ts, app-base-url.ts"]
+    Env["env.ts"]
+  end
+
+  MCP --> CreateSvc
+  MCP --> EntryRepo
+  Page --> PageAuth
+  Page --> EntryRepo
+  Page --> UI
+  API --> RouteAuth
+  API --> UploadSvc
+  CreateSvc --> EntryRepo
+  UploadSvc --> EntryRepo
+  UploadSvc --> Noop
+```
+
+| Layer | Path | Responsibility |
+|-------|------|----------------|
+| App Router | `app/` | Pages and API routes; auth at boundary |
+| MCP tools | `tools/` | MCP tool handlers |
+| Route UI | `app/**/_components/` | Client islands colocated with pages |
+| Services | `src/server/services/` | Use cases (create entry, upload) |
+| Repositories | `src/server/repositories/` | Drizzle reads/writes |
+| Page auth | `src/auth/guard-admin-page.ts` | SSR redirect / 403 |
+| Route auth | `src/server/auth/check-admin-access.ts` | 401 / 403 JSON |
+
+## Attachments upload flow (noop MVP)
+
+Admin-only page: `/entries/{id}/attachments`. One `POST` per file to `/api/entries/{id}/attachments` (multipart: `file`, `uploadId`). Client runs ~3 parallel uploads; per-row status in UI. Server logs via Pino; **no blob or DB row** yet — see [entry-attachments-noop-mvp ADR](docs/adr/2026-06-30/entry-attachments-noop-mvp.md).
+
+```mermaid
+sequenceDiagram
+  participant UI as attachment_uploader
+  participant API as POST_attachments
+  participant Svc as attachment_upload_service
+  participant Log as Pino
+
+  UI->>API: multipart file + uploadId
+  API->>Svc: upload
+  Svc->>Log: attachment.upload.received
+  Svc->>Log: attachment.upload.noop
+  Svc-->>API: per-file JSON
+  API-->>UI: update row by uploadId
+```
+
+## Structured logging (Pino)
+
+| Environment | `env` field | Format | `LOG_LEVEL` (default `info`) |
+|-------------|-------------|--------|--------------------------------|
+| Local dev | `local` | `pino-pretty` | root `.env` — override with `debug` if needed |
+| Vercel preview | `preview` | JSON stdout | Vercel env |
+| Vercel production | `production` | JSON stdout | Vercel env |
+
+Config: `apps/web/src/lib/logger.ts`, validated via `apps/web/src/env.ts`. `pino` / `pino-pretty` in `serverExternalPackages`.
 
 Implementation note: workspace packages are static imports with `transpilePackages`; root `.env` is loaded in `next.config.ts` for build and runtime.
 
@@ -224,16 +318,25 @@ flowchart TB
 ```mermaid
 flowchart TB
   Route["apps/web app/api/transport/route.ts"]
+  AttachAPI["app/api/entries/id/attachments/route.ts"]
   Handler[mcp-handler]
   Tool[create_entry tool]
+  Services["server/services"]
+  Repo["server/repositories"]
   Schemas[packages/schemas Zod]
   Embeddings[packages/embeddings embedText]
   DB[packages/db Drizzle]
 
   Route --> Handler --> Tool
+  Tool --> Services
+  Tool --> Repo
   Tool --> Schemas
   Tool --> Embeddings
-  Tool --> DB
+  AttachAPI --> Services
+  AttachAPI --> Schemas
+  Services --> Repo
+  Services --> Embeddings
+  Repo --> DB
   Embeddings -->|"env: ollama"| OllamaLocal[Ollama local]
   Embeddings -->|"env: vercel-gateway"| GatewayProd[AI Gateway prod]
   DB -->|"env: DATABASE_URL"| PostgresAny[(Postgres)]
@@ -257,22 +360,32 @@ flowchart TB
 | Local (v1) | `ollama` | `nomic-embed-text` | 768 | Host Ollama (Homebrew) |
 | Production | `vercel-gateway` | `openai/text-embedding-3-small` | 1536 | Vercel AI Gateway |
 
-Embed input format: `title + "\n\n" + body`.
+Embed input format: `title`, `rewritten_text`, and optional metadata (location, people, tags, mood) — see `formatEntryEmbedText` in `@journal/embeddings`.
 
 ## Data model
 
 ```sql
 entries (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    text NOT NULL DEFAULT 'default',
-  title      text NOT NULL,
-  body       text NOT NULL,
-  embedding  vector(768),              -- nomic-embed-text locally
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         text NOT NULL DEFAULT 'default',
+  title           text NOT NULL,
+  rewritten_text  text NOT NULL,
+  original_text   text,
+  country         text,
+  city            text,
+  language        text,
+  privacy         entry_privacy NOT NULL DEFAULT 'private',
+  people          text[],
+  tags            text[],
+  mood            text,
+  embedding       vector,                -- dimensions per EMBEDDING_DIMENSIONS
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
 )
 -- HNSW index on embedding (ready for search_entries later)
 ```
+
+No `attachments` table in MVP — uploads are logged only.
 
 ## Architecture decisions
 
@@ -284,3 +397,5 @@ Durable **why** lives in [`docs/adr/`](docs/adr/README.md) — grouped by date (
 | [2026-06-20](docs/adr/2026-06-20/) | Host Ollama workaround, GitHub Actions deploy (proposed) |
 | [2026-06-22](docs/adr/2026-06-22/) | Cursor-involved development, entry metadata |
 | [2026-06-23](docs/adr/2026-06-23/) | PR preview environments (Neon + Vercel via GHA) |
+| [2026-06-25](docs/adr/2026-06-25/) | Clerk app auth, MCP OAuth, admin RBAC |
+| [2026-06-30](docs/adr/2026-06-30/) | apps/web layering, attachments noop MVP, Pino logging |

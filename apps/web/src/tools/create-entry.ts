@@ -5,7 +5,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getAppBaseUrl } from "@/lib/app-base-url";
 import { isCreateEntryServiceEnabled } from "@/lib/feature-flags";
-import { logger } from "@/lib/logger";
+import { createRequestLogger } from "@/lib/logger";
 import {
   createEntryService,
   type CreateEntryResult,
@@ -89,7 +89,8 @@ export function registerCreateEntryTool(server: McpServer): void {
       });
 
       const useService = isCreateEntryServiceEnabled();
-      logger.info(
+      const log = createRequestLogger({ tool: "create_entry", title: input.title });
+      log.info(
         {
           event: "create_entry.route",
           route: useService ? "service" : "inline",

@@ -30,7 +30,7 @@ Embeddings use title, rewritten text, and any metadata you pass (location, peopl
 
 ## After saving
 
-Confirm briefly with the entry id returned by the tool.
+Confirm briefly with the entry id returned by the tool. The tool response also includes an **attachments URL** (`Add attachments: …/entries/{id}/attachments`) — an admin-only page where photos can be uploaded for that entry. You may share the link when the user might add images; do not promise persistence of uploads beyond what the tool confirms (storage is MVP/noop until a later release).
 
 ## Not available yet
 

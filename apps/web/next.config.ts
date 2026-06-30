@@ -9,7 +9,13 @@ config({
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@journal/db", "@journal/embeddings", "@journal/schemas"],
-  serverExternalPackages: ["postgres", "drizzle-orm", "envalid"],
+  serverExternalPackages: [
+    "postgres",
+    "drizzle-orm",
+    "envalid",
+    "pino",
+    "pino-pretty",
+  ],
   outputFileTracingRoot: path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "../..",

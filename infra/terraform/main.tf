@@ -42,6 +42,12 @@ locals {
         sensitive = true
         target    = local.vercel_env_targets
       },
+      {
+        key       = "APP_BASE_URL"
+        value     = "https://${var.vercel_production_hostname}"
+        sensitive = false
+        target    = local.vercel_env_targets_production_only
+      },
     ],
     local.ai_gateway_env_variables,
   )

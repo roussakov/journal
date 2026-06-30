@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
     "envalid",
     "pino",
     "pino-pretty",
+    "thread-stream",
   ],
   outputFileTracingRoot: path.join(
     path.dirname(fileURLToPath(import.meta.url)),

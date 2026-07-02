@@ -33,6 +33,10 @@
 - [ ] ChatGPT Custom GPT connector (HTTPS)
 - [x] Wire `vercel-gateway` embedding provider (`text-embedding-3-small`, 1536 dims)
 
+## Attachments
+
+- [ ] **Vision captioning for uploaded media** — after Vercel Blob + `attachments` table; caption images/videos via AI Gateway (`google/gemini-3.1-flash-lite`), embed caption text with existing `text-embedding-3-small` for entry–attachment ranking. Plan: [docs/plans/vision-model-selection.md](docs/plans/vision-model-selection.md)
+
 ## DevEx & ops
 
 - [ ] **Shell script tests with bats-core** — adopt [bats-core](https://github.com/bats-core/bats-core) for `.sh` scripts (start with `.github/scripts/preview-branch-name.sh`; extend to `infra/terraform/apply.sh`, `docker/pgadmin/entrypoint.sh`); run in CI alongside PR checks
